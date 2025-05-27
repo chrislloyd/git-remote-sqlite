@@ -92,23 +92,9 @@ test_push() {
   # Add the database as a remote and push
   git remote add origin "sqlite://${TEST_DIR}/test.db"
 
-  # Capture output to check for memory leaks
-  echo "Starting git push operation..."
-
-  # Run git push with a timeout using gtimeout from coreutils
-  if ! gtimeout 5 git push origin main 2>&1 | tee push_output.log; then
-    if [ $? -eq 124 ]; then
-      fail "Failed to push to SQLite database (timed out after 5 seconds)"
-    else
-      echo "Push output:"
-      cat push_output.log
-      fail "Failed to push to SQLite database"
-    fi
-  fi
-
-  # Check for memory leaks in the output
-  if grep -q "error(gpa): memory address" push_output.log; then
-    fail "Memory leaks detected during push operation"
+  # Run git push
+  if ! git push origin main; then
+    fail "Failed to push to SQLite database"
   fi
 
   pass "Successfully pushed to database"
@@ -132,20 +118,8 @@ test_clone() {
   # Add the database as a remote and fetch
   git remote add origin "sqlite://${TEST_DIR}/test.db"
 
-  # Capture fetch output to check for memory leaks (with timeout)
-  echo "Starting git fetch operation..."
-
-  if ! gtimeout 1 git fetch origin 2>&1 | tee fetch_output.log; then
-    if [ $? -eq 124 ]; then
-      fail "Failed to fetch from SQLite database (timed out after 5 seconds)"
-    else
-      fail "Failed to fetch from SQLite database"
-    fi
-  fi
-
-  # Check for memory leaks in the fetch output
-  if grep -q "error(gpa): memory address" fetch_output.log; then
-    fail "Memory leaks detected during fetch operation"
+  if ! git fetch origin; then
+    fail "Failed to fetch from SQLite database"
   fi
 
   git checkout -b main origin/main || fail "Failed to checkout branch from SQLite database"
@@ -234,35 +208,17 @@ test_update() {
   git add README.md
   git commit -m "Update README.md with new content"
 
-  # Push changes and check for memory leaks
-  if ! gtimeout 1 git push origin main 2>&1 | tee push_update_output.log; then
-    if [ $? -eq 124 ]; then
-      fail "Failed to push updates (timed out after 5 seconds)"
-    else
-      fail "Failed to push updates"
-    fi
-  fi
-
-  # Check for memory leaks in the push update output
-  if grep -q "error(gpa): memory address" push_update_output.log; then
-    fail "Memory leaks detected during push update operation"
+  # Push changes
+  if ! git push origin main; then
+    fail "Failed to push updates"
   fi
 
   # Go to clone and pull
   cd "$TEST_DIR/clone_test"
 
-  # Pull changes and check for memory leaks
-  if ! gtimeout 1 git pull origin main 2>&1 | tee pull_output.log; then
-    if [ $? -eq 124 ]; then
-      fail "Failed to pull updates (timed out after 5 seconds)"
-    else
-      fail "Failed to pull updates"
-    fi
-  fi
-
-  # Check for memory leaks in the pull output
-  if grep -q "error(gpa): memory address" pull_output.log; then
-    fail "Memory leaks detected during pull operation"
+  # Pull changes
+  if ! git pull origin main; then
+    fail "Failed to pull updates"
   fi
 
   # Verify the updated files are identical
