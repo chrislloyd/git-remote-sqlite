@@ -15,14 +15,6 @@
 
 ## Installation
 
-### Prerequisites
-
-- Git (version 2.25+)
-- SQLite (version 3.30+)
-- Zig (version 0.14.0) - only needed if building from source
-
-### Using Pre-built Binaries (Recommended)
-
 1. Download the latest release for your platform:
 
    ```bash
@@ -47,32 +39,23 @@
 
 4. The installation is complete. The binary functions as both a standalone command and as a Git remote helper.
 
-### Building from Source
-
-1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/chrislloyd/git-remote-sqlite.git
-   cd git-remote-sqlite
-   ```
-
-2. Build the binary using Zig:
-
-   ```bash
-   zig build
-   ```
-
-3. Copy the binary to your path:
-
-   ```bash
-   sudo cp zig-out/bin/git-remote-sqlite /usr/local/bin/
-   ```
-
-4. The installation is complete. The binary functions as both a standalone command and as a Git remote helper.
-
 ## Basic Usage
 
-### 1. Configure Repository Settings
+### 1. Push to/pull from the database
+
+Push your code to the SQLite database:
+
+```bash
+git push sqlite://myapp.db main
+```
+
+Pull it back:
+
+```bash
+git pull sqlite://myapp.db main
+```
+
+### 2. Configure Repository Settings
 
 You can configure server-side git settings stored in the SQLite database:
 
@@ -93,106 +76,11 @@ git-remote-sqlite config myapp.db --unset receive.denyDeletes
 
 These settings are stored in the `git_config` table and affect how git operations are processed when interacting with the SQLite repository.
 
-### 2. Push Code to the Database (Coming Soon)
-
-Push your code to the SQLite database:
-
-```bash
-git push sqlite://myapp.db main
-```
-
-### 3. Use as a Git Remote (Coming Soon)
-
-Add the database as a git remote:
-
-```bash
-# In your existing git repository
-git remote add origin sqlite://myapp.db
-
-# Note: 'origin' is just a name for the remote - you can use any name you prefer
-```
-
-### 4. Checkout Code from the Database (Coming Soon)
-
-Checkout a specific commit from the database:
-
-```bash
-git checkout sqlite://myapp.db main
-```
-
-This will extract the specified commit to the current directory.
 
 ## Development Status
 
 Currently implemented:
 - [x] Configuration management (set, get, list, unset)
-- [ ] Git remote helper protocol (push/pull functionality)
-- [ ] Git hooks
+- [x] Git remote helper protocol (push/pull functionality)
 - [ ] Pack file management (tables defined but not yet implemented)
-
-## Database Schema
-
-**git_objects**: Stores git objects (blobs, trees, commits, tags)
-
-| Column | Type | Constraints | Description |
-|--|--|--|--|
-| `sha` | TEXT | PRIMARY KEY, CHECK(length(sha) = 40 AND sha GLOB '[0-9a-f]*') | Object SHA hash |
-| `type` | TEXT | NOT NULL, CHECK(type IN ('blob', 'tree', 'commit', 'tag')) | Object type (blob, tree, commit, tag) |
-| `data` | BLOB | NOT NULL | Object content |
-
-*Indexes:*
-- `CREATE INDEX idx_git_objects_type ON git_objects(type);` - For efficient queries by object type
-
-**git_refs**: Stores git references
-
-| Column | Type | Constraints | Description |
-|--|--|--|--|
-| `name` | TEXT | PRIMARY KEY, CHECK(name GLOB 'refs/*') | Reference name (e.g., 'refs/heads/main') |
-| `sha` | TEXT | NOT NULL, FOREIGN KEY REFERENCES git_objects(sha) | Commit SHA the ref points to |
-| `type` | TEXT | NOT NULL, CHECK(type IN ('branch', 'tag', 'remote')) | Reference type (branch, tag, remote) |
-
-*Indexes:*
-- `CREATE INDEX idx_git_refs_sha ON git_refs(sha);` - For finding all refs pointing to a specific commit
-
-**git_symbolic_refs**: Stores symbolic references (like HEAD)
-
-| Column | Type | Constraints | Description |
-|--|--|--|--|
-| `name` | TEXT | PRIMARY KEY | Symbolic reference name (e.g., 'HEAD') |
-| `target` | TEXT | NOT NULL, FOREIGN KEY REFERENCES git_refs(name) | Target reference path |
-
-**git_packs**: Stores git pack files *(pending implementation)*
-
-| Column | Type | Constraints | Description |
-|--|--|--|--|
-| `id` | INTEGER | PRIMARY KEY | Unique pack identifier |
-| `name` | TEXT | NOT NULL, UNIQUE | Pack name/identifier |
-| `data` | BLOB | NOT NULL | Pack file binary data |
-| `index_data` | BLOB | NOT NULL | Pack index binary data |
-
-*Indexes:*
-- `CREATE INDEX idx_git_packs_name ON git_packs(name);` - For efficient lookups by pack name
-
-**git_pack_entries**: Maps objects to packs for faster lookups *(pending implementation)*
-
-| Column | Type | Constraints | Description |
-|--|--|--|--|
-| `pack_id` | INTEGER | NOT NULL, FOREIGN KEY REFERENCES git_packs(id) | Reference to the pack |
-| `sha` | TEXT | NOT NULL, FOREIGN KEY REFERENCES git_objects(sha) | Object SHA contained in the pack |
-| `offset` | INTEGER | NOT NULL | Offset position within the pack |
-| PRIMARY KEY | | (pack_id, sha) | Composite primary key |
-
-*Indexes:*
-- `CREATE INDEX idx_git_pack_entries_sha ON git_pack_entries(sha);` - For finding which pack contains a specific object
-
-
-**git_config**: Stores git configuration settings
-
-| Column | Type | Constraints | Description |
-|--|--|--|--|
-| `key` | TEXT | PRIMARY KEY | Configuration key |
-| `value` | TEXT | NOT NULL | Configuration value |
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+- [ ] Git hooks

@@ -5,6 +5,7 @@ This file provides guidance to [Claude Code](https://claude.ai/code) when workin
 Refer to:
 
 * @docs/development.md
+* @docs/schema.md
 * @docs/style.md
 
 Some tips:
