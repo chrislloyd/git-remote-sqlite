@@ -58,6 +58,7 @@ fn build_git_remote_sqlite(b: *std.Build, steps: struct {
     // Add system library linkage
     exe.linkSystemLibrary("sqlite3");
     exe.linkSystemLibrary("git2");
+    exe.linkLibC();
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
@@ -106,6 +107,7 @@ fn build_test(b: *std.Build, steps: struct {
     });
     unit.linkSystemLibrary("sqlite3");
     unit.linkSystemLibrary("git2");
+    unit.linkLibC();
 
     const run_unit = b.addRunArtifact(unit);
     steps.test_unit.dependOn(&run_unit.step);
