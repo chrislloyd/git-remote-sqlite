@@ -80,6 +80,7 @@ test_push() {
   git config user.name "Test User"
   git config user.email "test@example.com"
   git config commit.gpgsign false
+  git config init.defaultBranch main
 
   # Create a test file
   echo "# Test Repository" > README.md
@@ -88,6 +89,9 @@ test_push() {
   # Commit the file
   git add README.md
   git commit -m "Initial commit"
+  
+  # Ensure we're on main branch (rename master to main if needed)
+  git branch -M main
 
   # Add the database as a remote and push
   git remote add origin "sqlite://${TEST_DIR}/test.db"
@@ -114,6 +118,7 @@ test_clone() {
   git config user.name "Test User"
   git config user.email "test@example.com"
   git config commit.gpgsign false
+  git config init.defaultBranch main
 
   # Add the database as a remote and fetch
   git remote add origin "sqlite://${TEST_DIR}/test.db"
