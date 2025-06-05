@@ -12,34 +12,26 @@
 
 ## Installation
 
-1. Prerequisites
+1. Prerequisites:
 
 * [Git](https://git-scm.com) >= 1.6.6
 * [SQLite](https://sqlite.org) >= 3.0.0
 
-2. Download the latest release for your platform:
+2. Download and extract the latest release for your platform:
 
    ```bash
-   # macOS
-   curl -L https://github.com/chrislloyd/git-remote-sqlite/releases/latest/download/git-remote-sqlite-macos -o git-remote-sqlite
+   # macOS (Apple Silicon)
+   curl -L https://github.com/chrislloyd/git-remote-sqlite/releases/latest/download/git-remote-sqlite-aarch64-macos.tar.gz | tar xz
 
-   # Linux
-   curl -L https://github.com/chrislloyd/git-remote-sqlite/releases/latest/download/git-remote-sqlite-linux -o git-remote-sqlite
+   # Linux (x86_64)
+   curl -L https://github.com/chrislloyd/git-remote-sqlite/releases/latest/download/git-remote-sqlite-x86_64-linux.tar.gz | tar xz
    ```
 
-3. Make the binary executable:
-
-   ```bash
-   chmod +x git-remote-sqlite
-   ```
-
-4. Move the binary to your `$PATH`:
+3. Move the binary to your `$PATH`:
 
    ```bash
    sudo mv git-remote-sqlite /usr/local/bin/
    ```
-
-5. The installation is complete. The binary functions as both a standalone command and as a Git remote helper.
 
 ## Basic Usage
 

@@ -3,7 +3,7 @@
 ### Prerequisites
 
 * [Zig](https://ziglang.org) 0.14.0
-* [SQLite](https://www.sqlite.org) >= 3.20.0
+* [SQLite](https://www.sqlite.org) >= 3.0.0
 * [libgit2](https://libgit2.org) >= 1.0.0
 
 ## Building
