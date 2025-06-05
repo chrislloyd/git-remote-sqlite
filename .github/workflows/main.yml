@@ -1,16 +1,24 @@
 on:
   push:
     branches: [main]
+    tags:
+      - "v*"
   pull_request:
     branches: [main]
   workflow_dispatch:
 
 jobs:
-  main:
+  build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            target: x86_64-linux
+          - os: macos-latest
+            target: x86_64-macos
+          - os: macos-latest
+            target: aarch64-macos
 
     steps:
       - uses: actions/checkout@v4
@@ -33,3 +41,13 @@ jobs:
       - run: zig build
 
       - run: zig build test
+
+      - run: zig build release
+
+      - name: Release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          generate_release_notes: true
+          files: zig-out/git-remote-sqlite-${{ matrix.target }}.tar.gz

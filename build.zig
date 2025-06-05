@@ -22,6 +22,7 @@ pub fn build(b: *std.Build) void {
         .@"test" = b.step("test", "Run tests"),
         .test_unit = b.step("test:unit", "Run unit tests"),
         .test_integration = b.step("test:integration", "Run integration tests"),
+        .release = b.step("release", "Build release archives for all platforms"),
     };
 
     const target = b.standardTargetOptions(.{});
@@ -33,6 +34,8 @@ pub fn build(b: *std.Build) void {
     }, .{ .target = target, .optimize = optimize });
 
     build_test(b, .{ .@"test" = steps.@"test", .test_unit = steps.test_unit, .test_integration = steps.test_integration }, .{ .target = target, .optimize = optimize });
+
+    build_release(b, steps.release, .{ .target = target });
 }
 
 fn build_git_remote_sqlite(b: *std.Build, steps: struct {
@@ -120,4 +123,53 @@ fn build_test(b: *std.Build, steps: struct {
     // Main test step runs both unit and integration tests
     steps.@"test".dependOn(&run_unit.step);
     steps.@"test".dependOn(&integration_cmd.step);
+}
+
+fn build_release(b: *std.Build, release_step: *std.Build.Step, options: struct {
+    target: std.Build.ResolvedTarget,
+}) void {
+    // Use the target passed from build()
+    const release_target = options.target;
+    
+    // Determine target triple name based on the actual target
+    const triple = blk: {
+        const arch = release_target.result.cpu.arch;
+        const os = release_target.result.os.tag;
+        
+        if (arch == .x86_64 and os == .linux) break :blk "x86_64-linux";
+        if (arch == .x86_64 and os == .macos) break :blk "x86_64-macos";
+        if (arch == .aarch64 and os == .macos) break :blk "aarch64-macos";
+        
+        // Fallback for other platforms
+        break :blk b.fmt("{s}-{s}", .{ @tagName(arch), @tagName(os) });
+    };
+    
+    const release_mod = b.createModule(.{
+        .root_source_file = b.path("src/main.zig"),
+        .target = release_target,
+        .optimize = .ReleaseSafe,
+    });
+    const release_exe = b.addExecutable(.{
+        .name = "git-remote-sqlite",
+        .root_module = release_mod,
+    });
+    release_exe.linkSystemLibrary("sqlite3");
+    release_exe.linkSystemLibrary("git2");
+    release_exe.linkLibC();
+
+    // Install to zig-out/bin/{target}/git-remote-sqlite
+    const install = b.addInstallArtifact(release_exe, .{
+        .dest_dir = .{ .override = .{ .custom = b.fmt("bin/{s}", .{triple}) } },
+    });
+    
+    // Create tar.gz archive
+    const tar_cmd = b.addSystemCommand(&[_][]const u8{
+        "tar", "-czf",
+        b.fmt("{s}/git-remote-sqlite-{s}.tar.gz", .{ b.install_path, triple }),
+        "-C", b.fmt("{s}/bin/{s}", .{ b.install_path, triple }),
+        "git-remote-sqlite",
+    });
+    tar_cmd.step.dependOn(&install.step);
+    
+    release_step.dependOn(&tar_cmd.step);
 }
