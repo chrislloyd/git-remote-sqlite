@@ -23,6 +23,7 @@ pub fn build(b: *std.Build) void {
         .test_unit = b.step("test:unit", "Run unit tests"),
         .test_integration = b.step("test:integration", "Run integration tests"),
         .release = b.step("release", "Build release archives for all platforms"),
+        .repo_db = b.step("repo-db", "Create SQLite database of this repository"),
     };
 
     const target = b.standardTargetOptions(.{});
@@ -36,6 +37,11 @@ pub fn build(b: *std.Build) void {
     build_test(b, .{ .@"test" = steps.@"test", .test_unit = steps.test_unit, .test_integration = steps.test_integration }, .{ .target = target, .optimize = optimize });
 
     build_release(b, steps.release, .{ .target = target });
+    
+    build_repo_database(b, steps.repo_db);
+    
+    // Add repo database to release step
+    steps.release.dependOn(steps.repo_db);
 }
 
 fn build_git_remote_sqlite(b: *std.Build, steps: struct {
@@ -172,4 +178,65 @@ fn build_release(b: *std.Build, release_step: *std.Build.Step, options: struct {
     tar_cmd.step.dependOn(&install.step);
     
     release_step.dependOn(&tar_cmd.step);
+}
+
+fn build_repo_database(b: *std.Build, repo_db_step: *std.Build.Step) void {
+    // Ensure the binary is built first
+    repo_db_step.dependOn(b.getInstallStep());
+    
+    const db_filename = "git-remote-sqlite.db";
+    const db_path = b.fmt("{s}/{s}", .{ b.install_path, db_filename });
+    
+    // Remove existing database if it exists
+    const rm_cmd = b.addSystemCommand(&[_][]const u8{ "rm", "-f", db_path });
+    
+    // Script to create the database
+    const script = b.fmt(
+        \\#!/bin/bash
+        \\set -euo pipefail
+        \\
+        \\# Remove existing database
+        \\rm -f {s}
+        \\
+        \\# Create temp directory
+        \\TEMP_DIR=$(mktemp -d)
+        \\trap "rm -rf $TEMP_DIR" EXIT
+        \\
+        \\# Initialize bare repo in temp dir
+        \\cd "$TEMP_DIR"
+        \\git init --bare
+        \\
+        \\# Configure the SQLite remote
+        \\git remote add sqlite "sqlite://{s}"
+        \\
+        \\# Push current repo to temp bare repo
+        \\cd {s}
+        \\git push --mirror "file://$TEMP_DIR"
+        \\
+        \\# Push from temp repo to SQLite
+        \\cd "$TEMP_DIR"
+        \\export PATH="{s}/bin:$PATH"
+        \\git push --mirror sqlite
+        \\
+        \\# Verify the database was created
+        \\if [ -f "{s}" ]; then
+        \\    echo "Repository database created: {s}"
+        \\    echo "Database size: $(du -h {s} | cut -f1)"
+        \\    echo "Objects: $(sqlite3 {s} 'SELECT COUNT(*) FROM git_objects')"
+        \\    echo "Refs: $(sqlite3 {s} 'SELECT COUNT(*) FROM git_refs')"
+        \\else
+        \\    echo "ERROR: Database was not created"
+        \\    exit 1
+        \\fi
+    , .{ db_path, db_path, b.build_root.path orelse ".", b.install_path, db_path, db_path, db_path, db_path, db_path });
+    
+    // Write and execute the script
+    const script_path = b.fmt("{s}/create-repo-db.sh", .{b.cache_root.path orelse "."});
+    const write_script = b.addWriteFile(script_path, script);
+    
+    const create_db = b.addSystemCommand(&[_][]const u8{ "bash", script_path });
+    create_db.step.dependOn(&write_script.step);
+    create_db.step.dependOn(&rm_cmd.step);
+    
+    repo_db_step.dependOn(&create_db.step);
 }
