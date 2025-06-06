@@ -127,8 +127,13 @@ pub const ProtocolHandler = struct {
                 else => return self.fatalError("Command failed: {}\n", .{err}),
             };
 
-            response.format("", .{}, self.out) catch |err| {
-                return self.fatalError("Failed to write response: {}\n", .{err});
+            response.format("", .{}, self.out) catch |err| switch (err) {
+                error.BrokenPipe => {
+                    // Git may close the pipe after receiving all data it needs.
+                    // This is expected behavior and not an error.
+                    break;
+                },
+                else => return self.fatalError("Failed to write response: {}\n", .{err}),
             };
         }
     }
