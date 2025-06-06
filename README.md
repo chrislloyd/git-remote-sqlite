@@ -122,6 +122,10 @@ designed for local use or trusted environments. For remote access, you'd need
   to add your own security layer or use SQLite's built-in encryption
 extensions.
 
+### Should I use this for my companies Git Repo?
+
+Probably not. **git-remote-sqlite** is not 1.0 yet. It _definitely_ has bugs, performance cliffs and unknown behavior that makes it unsuitable for anything other than disposable toys.
+
 ## TODO
 
 - [ ] Git hook support
