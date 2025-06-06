@@ -10,7 +10,7 @@ Separate public and private functions clearly. Order imports with standard libra
 
 ```zig
 const std = @import("std");                    // Standard library first
-const config = @import("./config.zig");       // Local imports
+const config = @import("./config.zig");        // Local imports
 const c = @cImport({ @cInclude("header.h") }); // C imports last
 ```
 
@@ -42,4 +42,4 @@ Always have an e2e test for any command or behavior claimed in the README.
 
 ## Comments
 
-Use `// ---` for section breaks in files. This keeps visual noise low while providing clear section delineation.
+Use `// --` for section breaks in files. This keeps visual noise low while providing clear section delineation.
